@@ -2,25 +2,25 @@
 <html>
   <head>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>WebAR Multitarget Dinámico</title>
+    <title>WebAR Multi-Video Optimizado</title>
     <script src="https://aframe.io/releases/1.5.0/aframe.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/mind-ar@1.2.5/dist/mindar-image-aframe.prod.js"></script>
     <style>
       body { margin: 0; overflow: hidden; }
-      #ui {
+      #ui-scanning {
         position: fixed; z-index: 1000; bottom: 20px; left: 50%;
-        transform: translateX(-50%); background: rgba(0,0,0,0.7);
-        color: white; padding: 10px 20px; border-radius: 20px;
-        font-family: sans-serif; pointer-events: none;
+        transform: translateX(-50%); background: rgba(0,0,0,0.8);
+        color: white; padding: 12px 24px; border-radius: 30px;
+        font-family: sans-serif; font-size: 14px;
       }
     </style>
   </head>
   <body>
 
-    <div id="ui">Apunta a una imagen</div>
+    <div id="ui-scanning">Escaneando marcadores...</div>
 
     <a-scene 
-      mindar-image="imageTargetSrc: ./targets.mind; maxTrack: 2; uiScanning: #ui;" 
+      mindar-image="imageTargetSrc: ./targets.mind; maxTrack: 2; uiScanning: #ui-scanning;" 
       color-space="sRGB" 
       renderer="colorManagement: true, physicallyCorrectLights" 
       vr-mode-ui="enabled: false" 
@@ -36,56 +36,73 @@
     <script>
       const sceneEl = document.querySelector('a-scene');
       const assetsContainer = document.querySelector('#assets-container');
-      const TOTAL_TARGETS = 7; // Puedes dejarlo en 26 aunque solo uses 10
+      const TOTAL_TARGETS = 7; 
 
-      // 1. Generar los contenedores de AR automáticamente
+      // 1. Generar contenedores de AR
       for (let i = 0; i < TOTAL_TARGETS; i++) {
         const entity = document.createElement('a-entity');
         entity.setAttribute('mindar-image-target', `targetIndex: ${i}`);
         
-        // Creamos el plano donde se verá el video
         const videoPlane = document.createElement('a-video');
         videoPlane.setAttribute('id', `render-v${i}`);
         videoPlane.setAttribute('width', '1');
-        videoPlane.setAttribute('height', '0.6'); // Ajusta según tus videos
+        videoPlane.setAttribute('height', '0.6'); // Ajusta según tu formato (ej. 0.56 para 16:9)
         videoPlane.setAttribute('position', '0 0 0');
+        // El shader flat es clave para evitar que el video se vea blanco o negro por falta de luz
+        videoPlane.setAttribute('material', 'shader: flat; transparent: true');
         
         entity.appendChild(videoPlane);
         sceneEl.appendChild(entity);
       }
 
-      // 2. Lógica de carga y descarga dinámica
+      // 2. Lógica robusta de carga
       sceneEl.addEventListener("targetFound", event => {
         const i = event.detail.targetIndex;
-        console.log("Detectado target:", i);
+        console.log("Encontrado target:", i);
 
-        // Crear el elemento de video real
+        // Crear elemento video si no existe
         let v = document.createElement('video');
         v.id = `src-v${i}`;
-        v.src = `./videos/v${i}.mp4`; // Asegúrate que la ruta sea correcta
+        v.src = `./videos/v${i}.mp4`; 
         v.setAttribute('loop', 'true');
         v.setAttribute('crossorigin', 'anonymous');
         v.setAttribute('playsinline', '');
         v.setAttribute('webkit-playsinline', '');
         
+        // Muteamos por defecto para asegurar que el navegador permita el autoplay
+        v.muted = true; 
+
         assetsContainer.appendChild(v);
 
-        // Vincular el video al plano de AR
         const targetPlane = document.querySelector(`#render-v${i}`);
-        targetPlane.setAttribute('src', `#src-v${i}`);
 
-        // Intentar reproducir
-        v.play().catch(err => console.warn("Esperando interacción para audio"));
+        // Esperar a que el video tenga datos para evitar el cuadro blanco
+        v.oncanplay = () => {
+          targetPlane.setAttribute('src', `#src-v${i}`);
+          v.play().catch(e => console.log("Error play:", e));
+          
+          // Forzar actualización de textura en el motor 3D
+          const mesh = targetPlane.getObject3D('mesh');
+          if (mesh && mesh.material && mesh.material.map) {
+            mesh.material.map.needsUpdate = true;
+          }
+        };
       });
 
+      // 3. Limpieza total al perder el marcador
       sceneEl.addEventListener("targetLost", event => {
         const i = event.detail.targetIndex;
         const v = document.querySelector(`#src-v${i}`);
+        const targetPlane = document.querySelector(`#render-v${i}`);
         
         if (v) {
           v.pause();
-          v.src = ""; // Liberar memoria RAM inmediatamente
-          v.remove(); // Eliminar del DOM
+          v.src = ""; // Corta la descarga
+          v.load();
+          v.remove(); // Libera RAM
+        }
+        if (targetPlane) {
+          targetPlane.removeAttribute('src'); // Limpia la textura del plano
         }
       });
     </script>
