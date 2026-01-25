@@ -1,108 +1,98 @@
 <!DOCTYPE html>
 <html>
   <head>
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>WebAR Fix Final</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>WebAR - 7 Videos con Sonido</title>
     <script src="https://aframe.io/releases/1.5.0/aframe.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/mind-ar@1.2.5/dist/mindar-image-aframe.prod.js"></script>
     <style>
-      /* Pantalla de carga y permiso */
+      body, html { margin: 0; padding: 0; width: 100%; height: 100%; overflow: hidden; }
       #overlay {
         position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-        background: #111; z-index: 9999; display: flex;
+        background: #000; z-index: 10000; display: flex;
         flex-direction: column; align-items: center; justify-content: center;
-        color: white; font-family: sans-serif;
+        color: white; font-family: sans-serif; text-align: center; padding: 20px;
       }
-      #btn {
-        padding: 20px 40px; background: #007bff; color: white;
-        border: none; border-radius: 50px; font-size: 1.2rem;
-        font-weight: bold; cursor: pointer; box-shadow: 0 4px 15px rgba(0,123,255,0.4);
+      #start-btn {
+        padding: 20px 40px; background: #4CAF50; color: white;
+        border: none; border-radius: 50px; font-weight: bold; font-size: 20px; cursor: pointer;
       }
-      #ui-scanning {
-        position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%);
-        background: rgba(0,0,0,0.7); color: white; padding: 10px 20px;
-        border-radius: 20px; z-index: 1000; display: none; font-family: sans-serif;
-      }
+      .mindar-ui-overlay { display: none !important; }
+      canvas { width: 100vw !important; height: 100vh !important; position: fixed !important; top: 0 !important; left: 0 !important; }
     </style>
   </head>
   <body>
 
     <div id="overlay">
-      <h2>Experiencia AR</h2>
-      <p>Haz clic para activar cámara y videos</p>
-      <button id="btn">COMENZAR</button>
+      <h2>Experiencia AR Interactiva</h2>
+      <p>Apunta a los marcadores para ver los videos con sonido</p>
+      <button id="start-btn">COMENZAR</button>
     </div>
 
-    <div id="ui-scanning">Apunta a tu marcador...</div>
-
     <a-scene 
-      mindar-image="imageTargetSrc: ./targets.mind; autoStart: false; uiScanning: #ui-scanning;" 
+      mindar-image="imageTargetSrc: ./targets.mind; autoStart: false; uiScanning: no;" 
       embedded vr-mode-ui="enabled: false" device-orientation-permission-ui="enabled: false">
       
       <a-assets>
-        <video id="v0" src="./videos/v0.mp4" preload="auto" loop="true" crossorigin="anonymous" playsinline webkit-playsinline muted></video>
-        <video id="v1" src="./videos/v1.mp4" preload="auto" loop="true" crossorigin="anonymous" playsinline webkit-playsinline muted></video>
+        <video id="v0" src="./videos/v0.mp4" loop="true" crossorigin="anonymous" playsinline webkit-playsinline muted></video>
+        <video id="v1" src="./videos/v1.mp4" loop="true" crossorigin="anonymous" playsinline webkit-playsinline muted></video>
+        <video id="v2" src="./videos/v2.mp4" loop="true" crossorigin="anonymous" playsinline webkit-playsinline muted></video>
+        <video id="v3" src="./videos/v3.mp4" loop="true" crossorigin="anonymous" playsinline webkit-playsinline muted></video>
+        <video id="v4" src="./videos/v4.mp4" loop="true" crossorigin="anonymous" playsinline webkit-playsinline muted></video>
+        <video id="v5" src="./videos/v5.mp4" loop="true" crossorigin="anonymous" playsinline webkit-playsinline muted></video>
+        <video id="v6" src="./videos/v6.mp4" loop="true" crossorigin="anonymous" playsinline webkit-playsinline muted></video>
       </a-assets>
 
       <a-camera position="0 0 0" look-controls="enabled: false"></a-camera>
 
-      <a-entity id="target0" mindar-image-target="targetIndex: 0">
-        <a-video src="#v0" width="1" height="0.6" position="0 0 0" material="shader: flat;"></a-video>
-      </a-entity>
-
-      <a-entity id="target1" mindar-image-target="targetIndex: 1">
-        <a-video src="#v1" width="1" height="0.6" position="0 0 0" material="shader: flat;"></a-video>
-      </a-entity>
+      <a-entity id="target0" mindar-image-target="targetIndex: 0"><a-plane id="p0" width="1" height="0.6" material="shader: flat; src: #v0"></a-plane></a-entity>
+      <a-entity id="target1" mindar-image-target="targetIndex: 1"><a-plane id="p1" width="1" height="0.6" material="shader: flat; src: #v1"></a-plane></a-entity>
+      <a-entity id="target2" mindar-image-target="targetIndex: 2"><a-plane id="p2" width="1" height="0.6" material="shader: flat; src: #v2"></a-plane></a-entity>
+      <a-entity id="target3" mindar-image-target="targetIndex: 3"><a-plane id="p3" width="1" height="0.6" material="shader: flat; src: #v3"></a-plane></a-entity>
+      <a-entity id="target4" mindar-image-target="targetIndex: 4"><a-plane id="p4" width="1" height="0.6" material="shader: flat; src: #v4"></a-plane></a-entity>
+      <a-entity id="target5" mindar-image-target="targetIndex: 5"><a-plane id="p5" width="1" height="0.6" material="shader: flat; src: #v5"></a-plane></a-entity>
+      <a-entity id="target6" mindar-image-target="targetIndex: 6"><a-plane id="p6" width="1" height="0.6" material="shader: flat; src: #v6"></a-plane></a-entity>
 
     </a-scene>
 
     <script>
-      const btn = document.querySelector('#btn');
-      const overlay = document.querySelector('#overlay');
-      const uiScanning = document.querySelector('#ui-scanning');
-      const sceneEl = document.querySelector('a-scene');
-      
-      const video0 = document.querySelector('#v0');
-      const video1 = document.querySelector('#v1');
+      const btn = document.getElementById('start-btn');
+      const videos = [];
+      for(let i=0; i<7; i++) { videos.push(document.getElementById(`v${i}`)); }
+
+      // Componente para refrescar textura (evita cuadros negros)
+      AFRAME.registerComponent('video-refresh', {
+        tick: function () {
+          const mesh = this.el.getObject3D('mesh');
+          if (mesh && mesh.material && mesh.material.map) {
+            mesh.material.map.needsUpdate = true;
+          }
+        }
+      });
 
       btn.addEventListener('click', () => {
-        // Ocultar pantalla de inicio
-        overlay.style.display = 'none';
-        uiScanning.style.display = 'block';
-        
-        // Iniciar sistema AR
-        sceneEl.systems["mindar-image-system"].start();
-        
-        // "Despertar" los videos (hacemos play y pausa rápido)
-        // Esto quita el cuadro blanco en la mayoría de móviles
-        video0.play().then(() => video0.pause());
-        video1.play().then(() => video1.pause());
+        document.getElementById('overlay').style.display = 'none';
+        document.querySelector('a-scene').systems["mindar-image-system"].start();
+
+        videos.forEach((v, index) => {
+          // ACTIVAR SONIDO: Quitamos el mute tras la interacción del usuario
+          v.muted = false; 
+          // Pre-reproducción silenciosa para preparar el buffer
+          v.play().then(() => {
+            v.pause();
+            v.currentTime = 0;
+          });
+          // Aplicar el refrescador a cada plano
+          document.getElementById(`p${index}`).setAttribute('video-refresh', '');
+        });
       });
 
-      // Control de reproducción automática al detectar imagen
-      document.querySelector('#target0').addEventListener("targetFound", () => {
-        video0.play();
-      });
-      document.querySelector('#target0').addEventListener("targetLost", () => {
-        video0.pause();
-      });
-
-      document.querySelector('#target1').addEventListener("targetFound", () => {
-        video1.play();
-      });
-      document.querySelector('#target1').addEventListener("targetLost", () => {
-        video1.pause();
-      });
-      sceneEl.addEventListener("arReady", (event) => {
-  console.log("MindAR está listo y funcionando");
-  alert("Cámara y AR listos. ¡Busca el marcador!");
-});
-
-sceneEl.addEventListener("arError", (event) => {
-  console.log("Error en el AR:", event);
-  alert("Error al iniciar el AR. Revisa el archivo .mind");
-});
+      // Control de Play/Pause dinámico
+      for(let i=0; i<7; i++) {
+        const target = document.getElementById(`target${i}`);
+        target.addEventListener("targetFound", () => { videos[i].play(); });
+        target.addEventListener("targetLost", () => { videos[i].pause(); });
+      }
     </script>
   </body>
 </html>
-
