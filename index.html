@@ -93,6 +93,16 @@
       document.querySelector('#target1').addEventListener("targetLost", () => {
         video1.pause();
       });
+      sceneEl.addEventListener("arReady", (event) => {
+  console.log("MindAR está listo y funcionando");
+  alert("Cámara y AR listos. ¡Busca el marcador!");
+});
+
+sceneEl.addEventListener("arError", (event) => {
+  console.log("Error en el AR:", event);
+  alert("Error al iniciar el AR. Revisa el archivo .mind");
+});
     </script>
   </body>
 </html>
+
