@@ -2,115 +2,73 @@
 <html>
   <head>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>WebAR - Botón de Inicio</title>
+    <title>Diagnóstico WebAR</title>
     <script src="https://aframe.io/releases/1.5.0/aframe.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/mind-ar@1.2.5/dist/mindar-image-aframe.prod.js"></script>
     <style>
       body { margin: 0; overflow: hidden; }
-      
-      /* Pantalla de inicio */
       #overlay {
         position: fixed; top: 0; left: 0; width: 100%; height: 100%;
         background: rgba(0,0,0,0.9); z-index: 2000;
         display: flex; flex-direction: column; justify-content: center; align-items: center;
-        color: white; font-family: sans-serif; text-align: center;
+        color: white; font-family: sans-serif;
       }
-      #start-btn {
-        padding: 15px 40px; font-size: 18px; cursor: pointer;
-        background: #2196F3; color: white; border: none; border-radius: 50px;
-        margin-top: 20px; font-weight: bold; box-shadow: 0 4px 15px rgba(0,0,0,0.3);
-      }
-      
-      #ui-scanning {
-        position: fixed; z-index: 1000; bottom: 20px; left: 50%;
-        transform: translateX(-50%); background: rgba(0,0,0,0.8);
-        color: white; padding: 10px 20px; border-radius: 30px;
-        font-family: sans-serif; display: none;
-      }
+      #start-btn { padding: 15px 30px; background: #2196F3; color: white; border: none; border-radius: 10px; font-weight: bold;}
     </style>
   </head>
   <body>
 
     <div id="overlay">
-      <h2>Experiencia de Realidad Aumentada</h2>
-      <p>Permite el acceso a la cámara y haz clic para comenzar</p>
-      <button id="start-btn">EMPEZAR</button>
+      <button id="start-btn">HAY QUE HACER CLIC AQUÍ</button>
     </div>
 
-    <div id="ui-scanning">Escaneando marcadores...</div>
-
     <a-scene 
-      mindar-image="imageTargetSrc: ./targets.mind; maxTrack: 2; autoStart: false; uiScanning: #ui-scanning;" 
-      color-space="sRGB" 
-      renderer="colorManagement: true, physicallyCorrectLights" 
-      vr-mode-ui="enabled: false" 
-      device-orientation-permission-ui="enabled: false">
+      mindar-image="imageTargetSrc: ./targets.mind; autoStart: false;" 
+      embedded color-space="sRGB" renderer="colorManagement: true;" vr-mode-ui="enabled: false">
       
       <a-camera position="0 0 0" look-controls="enabled: false"></a-camera>
+
+      <a-entity mindar-image-target="targetIndex: 0">
+        <a-plane id="test-plane" width="1" height="0.6" position="0 0 0" material="shader: flat; color: red;"></a-plane>
+      </a-entity>
     </a-scene>
 
     <script>
       const sceneEl = document.querySelector('a-scene');
       const startBtn = document.querySelector('#start-btn');
-      const overlay = document.querySelector('#overlay');
-      const uiScanning = document.querySelector('#ui-scanning');
-      const TOTAL_TARGETS = 26; 
+      const testPlane = document.querySelector('#test-plane');
 
-      // 1. Crear las entidades de los planos
-      for (let i = 0; i < TOTAL_TARGETS; i++) {
-        const entity = document.createElement('a-entity');
-        entity.setAttribute('mindar-image-target', `targetIndex: ${i}`);
-        
-        const plane = document.createElement('a-plane');
-        plane.setAttribute('id', `plane-v${i}`);
-        plane.setAttribute('width', '1');
-        plane.setAttribute('height', '0.6');
-        plane.setAttribute('material', 'shader: flat; side: double; transparent: true');
-        
-        entity.appendChild(plane);
-        sceneEl.appendChild(entity);
-      }
-
-      // 2. Iniciar la escena al hacer clic
       startBtn.addEventListener('click', () => {
-        overlay.style.display = 'none';
-        uiScanning.style.display = 'block';
-        // Iniciamos MindAR manualmente tras el clic
+        document.querySelector('#overlay').style.display = 'none';
         sceneEl.systems["mindar-image-system"].start();
-      });
 
-      // 3. Gestión de videos dinámica
-      sceneEl.addEventListener("targetFound", event => {
-        const i = event.detail.targetIndex;
-        const plane = document.querySelector(`#plane-v${i}`);
-
+        // 1. Crear el video de prueba (URL de Wikimedia estable)
         const v = document.createElement('video');
-        v.src = 'https://raw.githubusercontent.com/aframevr/sample-assets/master/assets/videos/bunny.mp4';
-        v.muted = false; // Ahora podemos intentar con sonido gracias al botón
-        v.loop = true;
-        v.playsInline = true;
+        v.src = "https://upload.wikimedia.org/wikipedia/commons/transcoded/c/c0/Big_Buck_Bunny_4K.webm/Big_Buck_Bunny_4K.webm.480p.vp9.webm";
         v.crossOrigin = "anonymous";
+        v.loop = true;
+        v.muted = true;
+        v.playsInline = true;
+        v.play();
 
-        v.oncanplay = () => {
-          v.play();
-          plane.setAttribute('material', 'src', v);
-        };
+        // 2. Aplicar al plano cuando el video esté listo
+        v.addEventListener('playing', () => {
+           console.log("Video jugando");
+           testPlane.setAttribute('material', 'src', v);
+           testPlane.setAttribute('material', 'color', 'white'); // Quitamos el rojo
+        });
       });
 
-      sceneEl.addEventListener("targetLost", event => {
-        const i = event.detail.targetIndex;
-        const plane = document.querySelector(`#plane-v${i}`);
-        
-        const videoSrc = plane.getAttribute('material').src;
-        if (videoSrc && typeof videoSrc.pause === 'function') {
-          videoSrc.pause();
-          videoSrc.src = "";
-          videoSrc.load();
+      // 3. Forzar actualización de textura (Tick manual)
+      AFRAME.registerComponent('video-handler', {
+        tick: function () {
+          const mesh = testPlane.getObject3D('mesh');
+          if (mesh && mesh.material.map) {
+            mesh.material.map.needsUpdate = true;
+          }
         }
-        plane.setAttribute('material', 'src', '');
       });
+      testPlane.setAttribute('video-handler', '');
     </script>
   </body>
 </html>
-
-
