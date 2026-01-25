@@ -2,73 +2,97 @@
 <html>
   <head>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Diagnóstico WebAR</title>
+    <title>WebAR Fix Final</title>
     <script src="https://aframe.io/releases/1.5.0/aframe.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/mind-ar@1.2.5/dist/mindar-image-aframe.prod.js"></script>
     <style>
-      body { margin: 0; overflow: hidden; }
+      /* Pantalla de carga y permiso */
       #overlay {
         position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-        background: rgba(0,0,0,0.9); z-index: 2000;
-        display: flex; flex-direction: column; justify-content: center; align-items: center;
+        background: #111; z-index: 9999; display: flex;
+        flex-direction: column; align-items: center; justify-content: center;
         color: white; font-family: sans-serif;
       }
-      #start-btn { padding: 15px 30px; background: #2196F3; color: white; border: none; border-radius: 10px; font-weight: bold;}
+      #btn {
+        padding: 20px 40px; background: #007bff; color: white;
+        border: none; border-radius: 50px; font-size: 1.2rem;
+        font-weight: bold; cursor: pointer; box-shadow: 0 4px 15px rgba(0,123,255,0.4);
+      }
+      #ui-scanning {
+        position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%);
+        background: rgba(0,0,0,0.7); color: white; padding: 10px 20px;
+        border-radius: 20px; z-index: 1000; display: none; font-family: sans-serif;
+      }
     </style>
   </head>
   <body>
 
     <div id="overlay">
-      <button id="start-btn">HAY QUE HACER CLIC AQUÍ</button>
+      <h2>Experiencia AR</h2>
+      <p>Haz clic para activar cámara y videos</p>
+      <button id="btn">COMENZAR</button>
     </div>
 
+    <div id="ui-scanning">Apunta a tu marcador...</div>
+
     <a-scene 
-      mindar-image="imageTargetSrc: ./targets.mind; autoStart: false;" 
-      embedded color-space="sRGB" renderer="colorManagement: true;" vr-mode-ui="enabled: false">
+      mindar-image="imageTargetSrc: ./targets.mind; autoStart: false; uiScanning: #ui-scanning;" 
+      embedded vr-mode-ui="enabled: false" device-orientation-permission-ui="enabled: false">
       
+      <a-assets>
+        <video id="v0" src="./videos/v0.mp4" preload="auto" loop="true" crossorigin="anonymous" playsinline webkit-playsinline muted></video>
+        <video id="v1" src="./videos/v1.mp4" preload="auto" loop="true" crossorigin="anonymous" playsinline webkit-playsinline muted></video>
+      </a-assets>
+
       <a-camera position="0 0 0" look-controls="enabled: false"></a-camera>
 
-      <a-entity mindar-image-target="targetIndex: 0">
-        <a-plane id="test-plane" width="1" height="0.6" position="0 0 0" material="shader: flat; color: red;"></a-plane>
+      <a-entity id="target0" mindar-image-target="targetIndex: 0">
+        <a-video src="#v0" width="1" height="0.6" position="0 0 0" material="shader: flat;"></a-video>
       </a-entity>
+
+      <a-entity id="target1" mindar-image-target="targetIndex: 1">
+        <a-video src="#v1" width="1" height="0.6" position="0 0 0" material="shader: flat;"></a-video>
+      </a-entity>
+
     </a-scene>
 
     <script>
+      const btn = document.querySelector('#btn');
+      const overlay = document.querySelector('#overlay');
+      const uiScanning = document.querySelector('#ui-scanning');
       const sceneEl = document.querySelector('a-scene');
-      const startBtn = document.querySelector('#start-btn');
-      const testPlane = document.querySelector('#test-plane');
+      
+      const video0 = document.querySelector('#v0');
+      const video1 = document.querySelector('#v1');
 
-      startBtn.addEventListener('click', () => {
-        document.querySelector('#overlay').style.display = 'none';
+      btn.addEventListener('click', () => {
+        // Ocultar pantalla de inicio
+        overlay.style.display = 'none';
+        uiScanning.style.display = 'block';
+        
+        // Iniciar sistema AR
         sceneEl.systems["mindar-image-system"].start();
-
-        // 1. Crear el video de prueba (URL de Wikimedia estable)
-        const v = document.createElement('video');
-        v.src = "https://upload.wikimedia.org/wikipedia/commons/transcoded/c/c0/Big_Buck_Bunny_4K.webm/Big_Buck_Bunny_4K.webm.480p.vp9.webm";
-        v.crossOrigin = "anonymous";
-        v.loop = true;
-        v.muted = true;
-        v.playsInline = true;
-        v.play();
-
-        // 2. Aplicar al plano cuando el video esté listo
-        v.addEventListener('playing', () => {
-           console.log("Video jugando");
-           testPlane.setAttribute('material', 'src', v);
-           testPlane.setAttribute('material', 'color', 'white'); // Quitamos el rojo
-        });
+        
+        // "Despertar" los videos (hacemos play y pausa rápido)
+        // Esto quita el cuadro blanco en la mayoría de móviles
+        video0.play().then(() => video0.pause());
+        video1.play().then(() => video1.pause());
       });
 
-      // 3. Forzar actualización de textura (Tick manual)
-      AFRAME.registerComponent('video-handler', {
-        tick: function () {
-          const mesh = testPlane.getObject3D('mesh');
-          if (mesh && mesh.material.map) {
-            mesh.material.map.needsUpdate = true;
-          }
-        }
+      // Control de reproducción automática al detectar imagen
+      document.querySelector('#target0').addEventListener("targetFound", () => {
+        video0.play();
       });
-      testPlane.setAttribute('video-handler', '');
+      document.querySelector('#target0').addEventListener("targetLost", () => {
+        video0.pause();
+      });
+
+      document.querySelector('#target1').addEventListener("targetFound", () => {
+        video1.play();
+      });
+      document.querySelector('#target1').addEventListener("targetLost", () => {
+        video1.pause();
+      });
     </script>
   </body>
 </html>
