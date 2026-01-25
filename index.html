@@ -2,25 +2,45 @@
 <html>
   <head>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>WebAR Fix - Conexión Directa</title>
+    <title>WebAR - Botón de Inicio</title>
     <script src="https://aframe.io/releases/1.5.0/aframe.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/mind-ar@1.2.5/dist/mindar-image-aframe.prod.js"></script>
     <style>
       body { margin: 0; overflow: hidden; }
+      
+      /* Pantalla de inicio */
+      #overlay {
+        position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+        background: rgba(0,0,0,0.9); z-index: 2000;
+        display: flex; flex-direction: column; justify-content: center; align-items: center;
+        color: white; font-family: sans-serif; text-align: center;
+      }
+      #start-btn {
+        padding: 15px 40px; font-size: 18px; cursor: pointer;
+        background: #2196F3; color: white; border: none; border-radius: 50px;
+        margin-top: 20px; font-weight: bold; box-shadow: 0 4px 15px rgba(0,0,0,0.3);
+      }
+      
       #ui-scanning {
         position: fixed; z-index: 1000; bottom: 20px; left: 50%;
         transform: translateX(-50%); background: rgba(0,0,0,0.8);
-        color: white; padding: 12px 24px; border-radius: 30px;
-        font-family: sans-serif;
+        color: white; padding: 10px 20px; border-radius: 30px;
+        font-family: sans-serif; display: none;
       }
     </style>
   </head>
   <body>
 
-    <div id="ui-scanning">Escaneando...</div>
+    <div id="overlay">
+      <h2>Experiencia de Realidad Aumentada</h2>
+      <p>Permite el acceso a la cámara y haz clic para comenzar</p>
+      <button id="start-btn">EMPEZAR</button>
+    </div>
+
+    <div id="ui-scanning">Escaneando marcadores...</div>
 
     <a-scene 
-      mindar-image="imageTargetSrc: ./targets.mind; maxTrack: 2; uiScanning: #ui-scanning;" 
+      mindar-image="imageTargetSrc: ./targets.mind; maxTrack: 2; autoStart: false; uiScanning: #ui-scanning;" 
       color-space="sRGB" 
       renderer="colorManagement: true, physicallyCorrectLights" 
       vr-mode-ui="enabled: false" 
@@ -31,39 +51,48 @@
 
     <script>
       const sceneEl = document.querySelector('a-scene');
+      const startBtn = document.querySelector('#start-btn');
+      const overlay = document.querySelector('#overlay');
+      const uiScanning = document.querySelector('#ui-scanning');
       const TOTAL_TARGETS = 26; 
 
+      // 1. Crear las entidades de los planos
       for (let i = 0; i < TOTAL_TARGETS; i++) {
         const entity = document.createElement('a-entity');
         entity.setAttribute('mindar-image-target', `targetIndex: ${i}`);
         
-        // Usamos un a-plane básico en lugar de a-video para tener control total
-        const videoPlane = document.createElement('a-plane');
-        videoPlane.setAttribute('id', `plane-v${i}`);
-        videoPlane.setAttribute('width', '1');
-        videoPlane.setAttribute('height', '0.6');
-        videoPlane.setAttribute('position', '0 0 0');
-        videoPlane.setAttribute('material', 'shader: flat; side: double');
+        const plane = document.createElement('a-plane');
+        plane.setAttribute('id', `plane-v${i}`);
+        plane.setAttribute('width', '1');
+        plane.setAttribute('height', '0.6');
+        plane.setAttribute('material', 'shader: flat; side: double; transparent: true');
         
-        entity.appendChild(videoPlane);
+        entity.appendChild(plane);
         sceneEl.appendChild(entity);
       }
 
+      // 2. Iniciar la escena al hacer clic
+      startBtn.addEventListener('click', () => {
+        overlay.style.display = 'none';
+        uiScanning.style.display = 'block';
+        // Iniciamos MindAR manualmente tras el clic
+        sceneEl.systems["mindar-image-system"].start();
+      });
+
+      // 3. Gestión de videos dinámica
       sceneEl.addEventListener("targetFound", event => {
         const i = event.detail.targetIndex;
         const plane = document.querySelector(`#plane-v${i}`);
 
-        // Crear el video "invisible" en memoria
         const v = document.createElement('video');
-        v.src = 'https://www.w3schools.com/html/mov_bbb.mp4';
-        v.muted = true;
+        v.src = `./videos/v${i}.mp4`;
+        v.muted = false; // Ahora podemos intentar con sonido gracias al botón
         v.loop = true;
         v.playsInline = true;
         v.crossOrigin = "anonymous";
 
         v.oncanplay = () => {
           v.play();
-          // LA CLAVE: Asignar el objeto de video directamente al mapa de la textura
           plane.setAttribute('material', 'src', v);
         };
       });
@@ -72,7 +101,6 @@
         const i = event.detail.targetIndex;
         const plane = document.querySelector(`#plane-v${i}`);
         
-        // Detener el video y limpiar el material
         const videoSrc = plane.getAttribute('material').src;
         if (videoSrc && typeof videoSrc.pause === 'function') {
           videoSrc.pause();
@@ -84,5 +112,3 @@
     </script>
   </body>
 </html>
-
-
